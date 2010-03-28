@@ -15,8 +15,9 @@ end
 
 get "/login" do
   @service_url = Addressable::URI.parse(params[:service])
+  @renew = [true, "true", "1", 1].include?(params[:renew])
   
-  if sso_session
+  if sso_session && !@renew
     if @service_url
       st = ServiceTicket.new(@service_url)
       redirect_url = @service_url.clone

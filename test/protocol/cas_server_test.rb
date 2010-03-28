@@ -77,6 +77,7 @@ class CasServerTest < Test::Unit::TestCase
             end
           end
           
+          # Not specified, but good sanity check
           context "an invalid single sign-on session exists" do
             should "not generate a service ticket and rediect" do
               get "/login", {:service => @test_service_url}, "HTTP_COOKIE" => "tgt=TGC-1234567"
@@ -87,8 +88,17 @@ class CasServerTest < Test::Unit::TestCase
         end
       
         context "with a 'renew' parameter" do
+          setup { @params = { :renew => true }}
           context "a single sign-on session already exists" do
-            should "bypass single sign on and force the client to renew"
+            setup { sso_session_for("quentin") }
+            
+            should "bypass single sign on and force the client to renew" do
+              get "/login", @params, "HTTP_COOKIE" => @cookie
+              
+              assert_have_selector "input[name='username']"
+              assert_have_selector "input[name='password']"
+              assert_have_selector "input[name='lt']"
+            end
           end
 
           context "with a 'gateway' parameter" do
