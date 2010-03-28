@@ -322,6 +322,23 @@ class CasServerTest < Test::Unit::TestCase
         end
       end
     end
-
+    
+    # 3.7
+    context "ticket and ticket-granting cookie character set" do
+      setup do
+        @tickets = [
+          LoginTicket.new,
+          ServiceTicket.new("foo"),
+          TicketGrantingTicket.new
+        ]
+      end
+      # MUST
+      should "contain only characters from the set {A-Z, a-z, 0-9, and the hyphen character}" do
+        @tickets.each do |t|
+          assert_match /^[A-Za-z0-9\-]+$/, t.ticket
+        end
+        
+      end
+    end
   end
 end
