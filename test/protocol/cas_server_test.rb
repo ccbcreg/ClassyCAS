@@ -108,21 +108,50 @@ class CasServerTest < Test::Unit::TestCase
         end
       
         context "with a 'gateway' parameter" do
+          setup { @params = { :gateway => true }}
+          
           # RECOMMENDED
-          should "request credentials as though neither 'gateway' or 'service' were set"
+          should "request credentials as though neither 'gateway' or 'service' were set" do
+            get "/login", @params
+            
+            assert_have_selector "input[name='username']"
+            assert_have_selector "input[name='password']"
+            assert_have_selector "input[name='lt']"
+          end
         
           context "with a 'service' parameter" do
-            should "not ask for credentials"
+            setup { @params[:service] = @test_service_url }
+
+            should "not ask for credentials" do
+              get "/login", @params
+              
+              assert_have_no_selector "input[name='username']"
+              assert_have_no_selector "input[name='password']"
+              assert_have_no_selector "input[name='lt']"
+            end
+
+            # MUST
+            should "redirect the client to the service URL without a ticket" do
+              get "/login", @params
+
+              assert_equal(@test_service_url, last_response.headers["Location"])
+            end
 
             context "a single sign-on session already exists" do
+              setup { sso_session_for("quentin") }
+              
               # MAY
-              should "redirect the client to the service URL, appending a valid service ticket"
+              should "redirect the client to the service URL, appending a valid service ticket" do
+                get "/login", @params, "HTTP_COOKIE" => @cookie
+
+                assert last_response.redirect?
+                assert_equal Addressable::URI.parse(@test_service_url).path,
+                  Addressable::URI.parse(last_response.headers["Location"]).path
+              end
             
               # MAY
               # should "interpose an advisory page informing the client that a CAS authentication has taken place"
             end
-            # MUST
-            should "redirect the client to the service URL without a ticket"
           end
         end
       end

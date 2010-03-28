@@ -16,20 +16,39 @@ end
 get "/login" do
   @service_url = Addressable::URI.parse(params[:service])
   @renew = [true, "true", "1", 1].include?(params[:renew])
+  @gateway = [true, "true", "1", 1].include?(params[:gateway])
   
-  if sso_session && !@renew
+  if @renew
+    haml :login
+  elsif @gateway
     if @service_url
-      st = ServiceTicket.new(@service_url)
-      redirect_url = @service_url.clone
-      redirect_url.query_values = @service_url.query_values.merge(:ticket => st.ticket)
+      if sso_session
+        st = ServiceTicket.new(@service_url)
+        redirect_url = @service_url.clone
+        redirect_url.query_values = @service_url.query_values.merge(:ticket => st.ticket)
       
-      redirect redirect_url.to_s, 303
+        redirect redirect_url.to_s, 303
+      else
+        redirect @service_url.to_s, 303
+      end
     else
-      return haml :already_logged_in
+      haml :login
+    end
+  else
+    if sso_session
+      if @service_url
+        st = ServiceTicket.new(@service_url)
+        redirect_url = @service_url.clone
+        redirect_url.query_values = @service_url.query_values.merge(:ticket => st.ticket)
+      
+        redirect redirect_url.to_s, 303
+      else
+        return haml :already_logged_in
+      end
+    else
+      haml :login
     end
   end
-  
-  haml :login
 end
 
 post "/login" do
