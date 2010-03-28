@@ -25,4 +25,13 @@ post "/login" do
   # Spec is undefined about what to do without these params, so redirecting to credential requestor
   redirect "/login", 303 unless username && password && login_ticket
   
+  if username == "quentin" && password == "testpassword"
+    if service_url && !warn
+      redirect service_url, 303
+    else
+      haml :logged_in
+    end
+  else
+    
+  end
 end

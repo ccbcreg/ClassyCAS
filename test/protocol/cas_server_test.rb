@@ -12,6 +12,8 @@ class CasServerTest < Test::Unit::TestCase
   end
 
   context "A CAS server" do
+    setup { @service_url = "http://example.com?page=foo bar" }
+    
     # 2.1
     context "/login as credential requestor" do
       # 2.1.1
@@ -91,7 +93,6 @@ class CasServerTest < Test::Unit::TestCase
         end
       
         context "with a 'service' parameter" do
-          setup { @service_url = "http://example.com?page=foo bar" }
           # MUST
           should "include the parameter 'service' in the form" do
             get "/login?service=#{URI.encode(@service_url)}"
@@ -150,16 +151,40 @@ class CasServerTest < Test::Unit::TestCase
       # 2.2.4
       context "responding" do
         context "with success" do
+          setup { @params = {:username => "quentin", :password => "testpassword", :lt => "LT-1"} }
+          
           context "with a 'service' parameter" do
+            setup { @params[:service] = URI.encode(@service_url)}
             # MUST
-            should "cause the client the send a GET request to the 'service'"
+            should "cause the client the send a GET request to the 'service'" do
+              post "/login", @params
+              assert last_response.redirect?
+              assert_equal URI.encode(@service_url), last_response.headers["Location"]
+            end
             
             # MUST
-            should "not forward the client's credentials to the 'service'"
+            should "not forward the client's credentials to the 'service'" do
+              post "/login", @params
+              
+              assert_no_match /testpassword/, last_response.inspect
+            end
+            
+            # 2.2.1 again
+            context "with a 'warn' parameter" do
+              setup { @params[:warn] = "true" }
+              # MUST
+              should "prompt the client before authenticating to another service" do
+                post "/login", @params
+                assert !last_response.redirect?
+              end
+            end
           end
           
           # MUST
-          should "display a message notifying the client that it has successfully initiated a single sign-on session"
+          should "display a message notifying the client that it has successfully initiated a single sign-on session" do
+            post "/login", @params
+            assert !last_response.redirect?
+          end
         end
         
         context "with failure" do
