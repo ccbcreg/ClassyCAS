@@ -12,7 +12,10 @@ class CasServerTest < Test::Unit::TestCase
   end
 
   context "A CAS server" do
-    setup { @service_url = "http://example.com?page=foo bar" }
+    setup do
+      @service_url = "http://example.com?page=foo bar"
+      @redis = Redis.new
+    end
     
     # 2.1
     context "/login as credential requestor" do
@@ -222,6 +225,47 @@ class CasServerTest < Test::Unit::TestCase
     # 2.5
     context "/serviceValidate" do
       
+    end
+    
+    # 3.1
+    context "service ticket" do
+      setup do
+        @st = ServiceTicket.new(@service_url)
+        @st.save!(@redis)
+      end
+      
+      # 3.1.1
+      context "service ticket properties" do
+        should "be valid only for the service that was specified to /login when they were generated" do
+          assert @st.valid_for_service?(@service_url)
+          assert !@st.valid_for_service?("http://google.com")
+        end
+        
+        should "not include the service identifier in the service ticket" do
+          assert !@st.ticket.include?(@service_url)
+        end
+        
+        # MUST
+        should "be valid for only one attempt" do
+          assert ServiceTicket.validate!(@st.ticket, @redis)
+
+          assert !ServiceTicket.validate!(@st.ticket, @redis)
+        end
+        
+        should "expire unvalidated service tickets in a reasonable period of time (recommended to be less than 5 minutes)" do
+          assert @st.remaining_time(@redis) <= 300
+        end
+        
+        # MUST
+        # should "contain adequate secure random data so that a ticket is not guessable" Is this even testable?
+        
+        # MUST
+        should "begin with the characters 'ST-'" do
+          assert_match /^ST-/, @st.ticket
+        end
+        
+        # Services must accept a minimum of 32 chars.  Recommended 256
+      end
     end
   end
 end

@@ -3,6 +3,8 @@ require 'sinatra'
 require 'redis'
 require 'haml'
 
+require 'lib/service_ticket'
+
 before do
   @redis = Redis.new
 end
