@@ -313,6 +313,25 @@ class CasServerTest < Test::Unit::TestCase
       end
     end
     
+    # 3.3
+    context "proxy-granting ticket" do
+      # 3.3.1
+      context "properties" do
+        # MAY
+        should "be able to be used by services to obtain multiple proxy tickets"
+        
+        # MUST
+        should "expire with the client logs out of CAS"
+        
+        # MUST
+        # should "contain adequate secure random data so that the ticket-granting cookie is not guessable in a reasonable period of time"
+        # MUST
+        should "begin with the characters 'PGT-'"
+        
+        # Services must accept a minimum of 64 chars.  Recommended 256
+      end
+    end
+    
     # 3.5
     context "login ticket" do
       setup do
