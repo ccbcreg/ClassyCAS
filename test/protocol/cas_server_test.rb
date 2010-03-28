@@ -17,7 +17,7 @@ class CasServerTest < Test::Unit::TestCase
       # 2.1.1
       context "parameters" do
         should "request credentials" do
-          visit "/login"
+          get "/login"
           
           assert_have_selector "form"
         end
@@ -27,7 +27,14 @@ class CasServerTest < Test::Unit::TestCase
         end
 
         context "with a 'service' parameter" do
-          should "be url-encoded"
+          should "be url-encoded" do
+            service_url = "http://example.com?page=foo bar"
+
+            get "/login?service=#{URI.encode(service_url)}"
+            assert last_response.ok?
+
+            assert_raise(URI::InvalidURIError) { get "/login?service=#{service_url}" }
+          end
                 
           context "a single sign-on session already exists" do
 
