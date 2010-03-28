@@ -7,5 +7,5 @@
     %input#username{:name => "password", :type => "text"}
   %input{:name => "lt", :type => "hidden"}
   %input{:name => "warn", :type => "hidden"}
-  - if @service_param
-    %input{:name => "service", :type => "hidden", :value => @service_param}
+  - if @service_url
+    %input{:name => "service", :type => "hidden", :value => @service_url}

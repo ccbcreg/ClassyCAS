@@ -119,22 +119,27 @@ class CasServerTest < Test::Unit::TestCase
     # 2.2
     context "/login as credential acceptor" do
       # 2.2.1
-      context "parameters common to all types of authentication" do
-        context "with a 'service' parameter" do
-          # MUST
-          should "redirect the client to the 'service' url"
-        end
-        
-        context "with a 'warn' parameter" do
-          # MUST
-          should "prompt the client before authenticating on another service"
-        end
-      end
+      # Tests in 2.2.4
+      # context "parameters common to all types of authentication" do
+      #   context "with a 'service' parameter" do
+      #     # MUST
+      #     should "redirect the client to the 'service' url"
+      #   end
+      #   
+      #   context "with a 'warn' parameter" do
+      #     # MUST
+      #     should "prompt the client before authenticating on another service"
+      #   end
+      # end
       
       # 2.2.2
       context "parameters for username/password authentication" do
         # MUST
-        should "require 'username', 'password', and 'lt' (login ticket) parameters"
+        should "require 'username', 'password', and 'lt' (login ticket) parameters" do
+          post "/login"
+          
+          assert !last_response.ok?
+        end
       end
       
       # 2.2.3

@@ -8,7 +8,21 @@ before do
 end
 
 get "/login" do
-  @service_param = params[:service]
+  @service_url = params[:service]
   
   haml :login
+end
+
+post "/login" do
+  username = params[:username]
+  password = params[:password]
+  login_ticket = params[:lt]
+  
+  service_url = params[:service]
+
+  warn = ["1", "true"].include? params[:warn]
+  
+  # Spec is undefined about what to do without these params, so redirecting to credential requestor
+  redirect "/login", 303 unless username && password && login_ticket
+  
 end
