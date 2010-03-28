@@ -193,9 +193,11 @@ class CasServerTest < Test::Unit::TestCase
       # 2.1.5
       context "response for single sign-on authentication" do
         context "a single sign-on session already exists" do
-          # As 2.2.4
+          # I think this was already covered in 2.1.1
+          context "with a 'renew' parameter" do
+            # As 2.1.3 or 2.1.4
+          end
         end
-        # As 2.1.3 or 2.1.4
       end
     end
 
