@@ -4,6 +4,7 @@ require 'redis'
 require 'haml'
 
 require 'lib/login_ticket'
+require 'lib/proxy_ticket'
 require 'lib/service_ticket'
 require 'lib/ticket_granting_ticket'
 

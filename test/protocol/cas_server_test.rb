@@ -268,6 +268,51 @@ class CasServerTest < Test::Unit::TestCase
       end
     end
     
+    # 3.2
+    context "proxy ticket" do
+      setup do
+        @pt = ProxyTicket.new(@service_url)
+        @pt.save!(@redis)
+      end
+      
+      # 3.2.1
+      context "properties" do
+        should "be valid only for the service that was specified to /proxy when they were generated" do
+          assert @pt.valid_for_service?(@service_url)
+          assert !@pt.valid_for_service?("http://google.com")
+        end
+        
+        should "not include the service identifier in the proxy ticket" do
+          assert !@pt.ticket.include?(@service_url)
+        end
+        
+        # MUST
+        should "be valid for only one attempt" do
+          assert ProxyTicket.validate!(@pt.ticket, @redis)
+
+          assert !ProxyTicket.validate!(@pt.ticket, @redis)
+        end
+        
+        should "expire unvalidated service tickets in a reasonable period of time (recommended to be less than 5 minutes)" do
+          assert @pt.remaining_time(@redis) <= 300
+        end
+        
+        # MUST
+        # should "contain adequate secure random data so that a ticket is not guessable" Is this even testable?
+        
+        should "begin with the characters 'PT-'" do
+          assert_match /^PT-/, @pt.ticket
+        end
+        
+        # MUST
+        should "begin with the characters 'ST-' or 'PT-'" do
+          assert_match /^(ST|PT)-/, @pt.ticket
+        end
+        
+        # Services must accept a minimum of 32 chars.  Recommended 256
+      end
+    end
+    
     # 3.5
     context "login ticket" do
       setup do
