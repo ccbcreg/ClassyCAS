@@ -224,7 +224,57 @@ class CasServerTest < Test::Unit::TestCase
     
     # 2.5
     context "/serviceValidate" do
+      # 2.5.1
+      context "parameters" do
+        context "with 'service' and 'ticket' parameters" do
+          
+          context "with a 'pgtUrl' parameter" do
+            
+          end
+          
+          context "with a 'renew' parameter" do
+            
+          end
+        end
+      end
+
+      # 2.5.2
+      context "response" do
+        context "ticket validation success" do
+          should "produce an XML service response"
+        end
+        
+        context "ticket validation failure" do
+          should "produce an XML service response"
+        end
+      end
+
+      # 2.5.3
+      context "error codes" do
+        context "not all of the required request parameters present" do
+          should "respond with INVALID_REQUEST"
+        end
+        
+        context "ticket provided was not valid or the ticket did not come from an intial login and 'renew' was set" do
+          should "respond with INVALID_TICKET"
+        end
+        
+        context "the ticket provided was valid, but the service specified did not match the service associated with the ticket" do
+          should "respond with INVALID_SERVICE"
+          
+          # MUST
+          should "invalidate the ticket"
+        end
+        
+        context "an internal error occurred during ticket validation" do
+          should "respond with INTERNAL_ERROR"
+        end
+      end
       
+      # 2.5.4
+      context "proxy callback" do
+        # TODO
+      end
     end
     
     # 3.1
