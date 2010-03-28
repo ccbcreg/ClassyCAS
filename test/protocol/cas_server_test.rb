@@ -235,7 +235,7 @@ class CasServerTest < Test::Unit::TestCase
       end
       
       # 3.1.1
-      context "service ticket properties" do
+      context "properties" do
         should "be valid only for the service that was specified to /login when they were generated" do
           assert @st.valid_for_service?(@service_url)
           assert !@st.valid_for_service?("http://google.com")
@@ -265,6 +265,31 @@ class CasServerTest < Test::Unit::TestCase
         end
         
         # Services must accept a minimum of 32 chars.  Recommended 256
+      end
+    end
+    
+    # 3.5
+    context "login ticket" do
+      setup do
+        @lt = LoginTicket.new
+        @lt.save!(@redis)
+      end
+      
+      # 3.5.1
+      context "properties" do
+        # MUST
+        # should "be probablistically unique"
+      
+        # MUST
+        should "be valid for only one attempt" do
+          assert LoginTicket.validate!(@lt.ticket, @redis)
+          
+          assert !LoginTicket.validate!(@lt.ticket, @redis)
+        end
+      
+        should "begin with the characters 'LT-'" do
+          assert_match /^LT-/, @lt.ticket
+        end
       end
     end
   end

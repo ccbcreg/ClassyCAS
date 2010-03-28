@@ -3,6 +3,7 @@ require 'sinatra'
 require 'redis'
 require 'haml'
 
+require 'lib/login_ticket'
 require 'lib/service_ticket'
 
 before do
