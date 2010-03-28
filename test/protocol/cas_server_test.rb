@@ -410,7 +410,7 @@ class CasServerTest < Test::Unit::TestCase
     # 3.6
     context "ticket-granting cookie" do
       setup do
-        @tgt = TicketGrantingTicket.new
+        @tgt = TicketGrantingTicket.new("quentin")
         @tgt.save!(@redis)
       end
       # 3.6.1
@@ -443,7 +443,7 @@ class CasServerTest < Test::Unit::TestCase
         @tickets = [
           LoginTicket.new,
           ServiceTicket.new("foo"),
-          TicketGrantingTicket.new
+          TicketGrantingTicket.new("quentin")
         ]
       end
       # MUST
