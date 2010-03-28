@@ -292,5 +292,36 @@ class CasServerTest < Test::Unit::TestCase
         end
       end
     end
+    
+    # 3.6
+    context "ticket-granting cookie" do
+      setup do
+        @tgt = TicketGrantingTicket.new
+        @tgt.save!(@redis)
+      end
+      # 3.6.1
+      context "properties" do
+        # MUST
+        should "be set to expire at the end of the client's browser session" do
+          cookie_args = @tgt.to_cookie("http://localhost", "/cas")
+          assert_equal(nil, cookie_args[1][:expires])
+        end
+        
+        # MUST
+        should "have a cookie path set to be as restrictive as possible" do
+          cookie_args = @tgt.to_cookie("http://localhost", "/cas")
+        
+          assert_equal("/cas", cookie_args[1][:path])
+        end
+        
+        # MUST
+        # should "contain adequate secure random data so that the ticket-granting cookie is not guessable in a reasonable period of time"
+        
+        should "begin with the characters 'TGC-'" do
+          assert_match /^TGC-/, @tgt.ticket
+        end
+      end
+    end
+
   end
 end

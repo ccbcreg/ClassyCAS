@@ -5,6 +5,7 @@ require 'haml'
 
 require 'lib/login_ticket'
 require 'lib/service_ticket'
+require 'lib/ticket_granting_ticket'
 
 before do
   @redis = Redis.new
