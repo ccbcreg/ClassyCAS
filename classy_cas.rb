@@ -2,6 +2,7 @@ require 'rubygems'
 require 'sinatra'
 require 'redis'
 require 'haml'
+require 'addressable/uri'
 
 require 'lib/login_ticket'
 require 'lib/proxy_ticket'
@@ -13,7 +14,19 @@ before do
 end
 
 get "/login" do
-  @service_url = params[:service]
+  @service_url = Addressable::URI.parse(params[:service])
+  
+  if sso_session
+    if @service_url
+      st = ServiceTicket.new(@service_url)
+      redirect_url = @service_url.clone
+      redirect_url.query_values = @service_url.query_values.merge(:ticket => st.ticket)
+      
+      redirect redirect_url.to_s, 303
+    else
+      return haml :already_logged_in
+    end
+  end
   
   haml :login
 end
@@ -39,4 +52,9 @@ post "/login" do
   else
     
   end
+end
+
+private
+def sso_session
+  @sso_session ||= TicketGrantingTicket.validate!(request.cookies["tgt"], @redis)
 end

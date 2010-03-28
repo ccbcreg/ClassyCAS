@@ -1,7 +1,7 @@
 class TicketGrantingTicket
   class << self
     def validate!(ticket, store)
-      if username = store[ticket]
+      if ticket && username = store[ticket]
         new(username)
       end
     end

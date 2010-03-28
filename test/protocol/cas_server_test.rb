@@ -2,18 +2,36 @@ require File.dirname(__FILE__) + "/../test_helper"
 require "rack/test"
 require File.dirname(__FILE__) + "/../../classy_cas"
 
+set :environment, :test
+
 class CasServerTest < Test::Unit::TestCase
   include Rack::Test::Methods
   include Webrat::Methods
   include Webrat::Matchers
 
+  module Rack
+    module Test
+      DEFAULT_HOST = 'localhost'
+    end
+  end
+
   def app
     Sinatra::Application.new
   end
 
+  def sso_session_for(username)
+    @tgt = TicketGrantingTicket.new("quentin")
+    @tgt.save!(@redis)
+    cookie = @tgt.to_cookie("localhost", "/")
+    
+    # Rack's set_cookie appears to be worse than useless, unless I'm mistaken
+    @cookie = "#{cookie[0]}=#{cookie[1][:value]}"
+    @tgt
+  end
+
   context "A CAS server" do
     setup do
-      @service_url = "http://example.com?page=foo bar"
+      @test_service_url = "http://example.com?page=foo bar"
       @redis = Redis.new
     end
     
@@ -28,21 +46,43 @@ class CasServerTest < Test::Unit::TestCase
         end
 
         context "a single sign-on session already exists" do
-          should "notify the client that it is already logged in"
+          setup { sso_session_for("quentin") }
+          
+          should "notify the client that it is already logged in" do
+            get "/login", {}, "HTTP_COOKIE" => @cookie
+            
+            assert_match /already logged in/, last_response.body
+          end
         end
 
         context "with a 'service' parameter" do
           should "be url-encoded" do
-            service_url = "http://example.com?page=foo bar"
 
-            get "/login?service=#{URI.encode(service_url)}"
+            get "/login?service=#{URI.encode(@test_service_url)}"
             assert last_response.ok?
 
-            assert_raise(URI::InvalidURIError) { get "/login?service=#{service_url}" }
+            assert_raise(URI::InvalidURIError) { get "/login?service=#{@test_service_url}" }
           end
                 
           context "a single sign-on session already exists" do
+            setup { sso_session_for("quentin") }
+            
+            # I'm going off rubycas-server here, and what I think is implied.
+            should "generate a service ticket and redirect to the service" do
+              get "/login", {:service => @test_service_url}, "HTTP_COOKIE" => @cookie
 
+              assert last_response.redirect?
+              assert_equal Addressable::URI.parse(@test_service_url).path,
+                Addressable::URI.parse(last_response.headers["Location"]).path
+            end
+          end
+          
+          context "an invalid single sign-on session exists" do
+            should "not generate a service ticket and rediect" do
+              get "/login", {:service => @test_service_url}, "HTTP_COOKIE" => "tgt=TGC-1234567"
+            
+              assert !last_response.headers["Location"]
+            end
           end
         end
       
@@ -98,10 +138,10 @@ class CasServerTest < Test::Unit::TestCase
         context "with a 'service' parameter" do
           # MUST
           should "include the parameter 'service' in the form" do
-            get "/login?service=#{URI.encode(@service_url)}"
+            get "/login?service=#{URI.encode(@test_service_url)}"
             
             assert_have_selector "input[name='service']"
-            assert field_named("service").value == @service_url
+            assert field_named("service").value == @test_service_url
           end
         end
       end
@@ -157,12 +197,12 @@ class CasServerTest < Test::Unit::TestCase
           setup { @params = {:username => "quentin", :password => "testpassword", :lt => "LT-1"} }
           
           context "with a 'service' parameter" do
-            setup { @params[:service] = URI.encode(@service_url)}
+            setup { @params[:service] = URI.encode(@test_service_url)}
             # MUST
             should "cause the client the send a GET request to the 'service'" do
               post "/login", @params
               assert last_response.redirect?
-              assert_equal URI.encode(@service_url), last_response.headers["Location"]
+              assert_equal URI.encode(@test_service_url), last_response.headers["Location"]
             end
             
             # MUST
@@ -280,19 +320,19 @@ class CasServerTest < Test::Unit::TestCase
     # 3.1
     context "service ticket" do
       setup do
-        @st = ServiceTicket.new(@service_url)
+        @st = ServiceTicket.new(@test_service_url)
         @st.save!(@redis)
       end
       
       # 3.1.1
       context "properties" do
         should "be valid only for the service that was specified to /login when they were generated" do
-          assert @st.valid_for_service?(@service_url)
+          assert @st.valid_for_service?(@test_service_url)
           assert !@st.valid_for_service?("http://google.com")
         end
         
         should "not include the service identifier in the service ticket" do
-          assert !@st.ticket.include?(@service_url)
+          assert !@st.ticket.include?(@test_service_url)
         end
         
         # MUST
@@ -321,19 +361,19 @@ class CasServerTest < Test::Unit::TestCase
     # 3.2
     context "proxy ticket" do
       setup do
-        @pt = ProxyTicket.new(@service_url)
+        @pt = ProxyTicket.new(@test_service_url)
         @pt.save!(@redis)
       end
       
       # 3.2.1
       context "properties" do
         should "be valid only for the service that was specified to /proxy when they were generated" do
-          assert @pt.valid_for_service?(@service_url)
+          assert @pt.valid_for_service?(@test_service_url)
           assert !@pt.valid_for_service?("http://google.com")
         end
         
         should "not include the service identifier in the proxy ticket" do
-          assert !@pt.ticket.include?(@service_url)
+          assert !@pt.ticket.include?(@test_service_url)
         end
         
         # MUST
