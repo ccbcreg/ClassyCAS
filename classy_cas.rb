@@ -8,5 +8,7 @@ before do
 end
 
 get "/login" do
+  @service_param = params[:service]
+  
   haml :login
 end

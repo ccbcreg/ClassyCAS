@@ -75,14 +75,30 @@ class CasServerTest < Test::Unit::TestCase
       # 2.1.3
       context "response for username/password authentication" do
         # MUST
-        should "include a form with the parameters, 'username', 'password', and 'lt'"
+        should "include a form with the parameters, 'username', 'password', and 'lt'" do
+          get "/login"
+          
+          assert_have_selector "input[name='username']"
+          assert_have_selector "input[name='password']"
+          assert_have_selector "input[name='lt']"
+        end
       
         # MAY
-        should "include the parameter 'warn' in the form"
+        should "include the parameter 'warn' in the form" do
+          get "/login"
+
+          assert_have_selector "input[name='warn']"
+        end
       
         context "with a 'service' parameter" do
+          setup { @service_url = "http://example.com?page=foo bar" }
           # MUST
-          should "include the parameter 'service' in the form"
+          should "include the parameter 'service' in the form" do
+            get "/login?service=#{URI.encode(@service_url)}"
+            
+            assert_have_selector "input[name='service']"
+            assert field_named("service").value == @service_url
+          end
         end
       end
     
