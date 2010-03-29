@@ -335,6 +335,13 @@ class CasServerTest < Test::Unit::TestCase
     
     # 2.5
     context "/serviceValidate" do
+      setup do
+        @st = ServiceTicket.new(@test_service_url, "quentin")
+        @st.save!(@redis)
+        
+        @xsd = Nokogiri::XML::Schema(File.new(File.dirname(__FILE__) + "/cas.xsd"))
+      end
+      
       # 2.5.1
       context "parameters" do
         context "with 'service' and 'ticket' parameters" do
@@ -352,11 +359,25 @@ class CasServerTest < Test::Unit::TestCase
       # 2.5.2
       context "response" do
         context "ticket validation success" do
-          should "produce an XML service response"
+          should "produce an XML service response" do
+            post "/serviceValidate", {:service => @test_service_url, :ticket => @st.ticket}
+            
+            xml = Nokogiri::XML.parse(last_response.body)
+            assert @xsd.validate(xml)
+            
+            assert_equal("quentin", xml.xpath("//cas:user"))
+          end
         end
         
         context "ticket validation failure" do
-          should "produce an XML service response"
+          should "produce an XML service response" do
+            post "/serviceValidate", {:service => @test_service_url, :ticket => "ST-FAKE"}
+
+            xml = Nokogiri::XML.parse(last_response.body)
+            assert @xsd.validate(xml)
+            
+            assert xml.xpath("//cas:authenticationFailure")
+          end
         end
       end
 
@@ -391,7 +412,7 @@ class CasServerTest < Test::Unit::TestCase
     # 3.1
     context "service ticket" do
       setup do
-        @st = ServiceTicket.new(@test_service_url)
+        @st = ServiceTicket.new(@test_service_url, "quentin")
         @st.save!(@redis)
       end
       
@@ -553,8 +574,8 @@ class CasServerTest < Test::Unit::TestCase
       setup do
         @tickets = [
           LoginTicket.new,
-          ServiceTicket.new("foo"),
-          TicketGrantingTicket.new("quentin")
+          ServiceTicket.new("http://example.com", "foo"),
+          TicketGrantingTicket.new("foo")
         ]
       end
       # MUST

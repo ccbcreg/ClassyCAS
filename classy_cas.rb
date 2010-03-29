@@ -3,6 +3,7 @@ require 'sinatra'
 require 'redis'
 require 'haml'
 require 'addressable/uri'
+require 'nokogiri'
 
 require 'lib/login_ticket'
 require 'lib/proxy_ticket'
@@ -23,7 +24,7 @@ get "/login" do
   elsif @gateway
     if @service_url
       if sso_session
-        st = ServiceTicket.new(@service_url)
+        st = ServiceTicket.new(@service_url, sso_session.username)
         redirect_url = @service_url.clone
         redirect_url.query_values = @service_url.query_values.merge(:ticket => st.ticket)
       
@@ -37,7 +38,7 @@ get "/login" do
   else
     if sso_session
       if @service_url
-        st = ServiceTicket.new(@service_url)
+        st = ServiceTicket.new(@service_url, sso_session.username)
         redirect_url = @service_url.clone
         redirect_url.query_values = @service_url.query_values.merge(:ticket => st.ticket)
       
@@ -69,7 +70,28 @@ post "/login" do
       haml :logged_in
     end
   else
-    
+    redirect "/login", 303
+  end
+end
+
+get "/serviceValidate" do
+  service_url = params[:service]
+  
+  # proxy_gateway = params[:pgtUrl]
+  # renew = params[:renew]
+  
+  if params[:service] && params[:ticket]
+    if service_ticket
+      if service_ticket.valid_for_service(service_url)
+        render_validation_success service_ticket.username
+      else
+        render_validation_error :invalid_service
+      end
+    else
+      render_validation_error :invalid_ticket
+    end
+  else
+    render_validation_error :invalid_request
   end
 end
 
@@ -80,4 +102,8 @@ end
 
 def login_ticket
   @login_ticket ||= LoginTicket.validate!(params[:lt], @redis)
+end
+
+def service_ticket
+  @service_ticket ||= ServiceTicket.validate(params[:ticket], @redis)
 end
