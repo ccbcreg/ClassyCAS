@@ -80,19 +80,23 @@ get "/serviceValidate" do
   # proxy_gateway = params[:pgtUrl]
   # renew = params[:renew]
   
-  if params[:service] && params[:ticket]
+  xml = if params[:service] && params[:ticket]
     if service_ticket
-      if service_ticket.valid_for_service(service_url)
+      if service_ticket.valid_for_service?(service_url)
+        # debugger
         render_validation_success service_ticket.username
       else
-        render_validation_error :invalid_service
+        render_validation_error(:invalid_service)
       end
     else
-      render_validation_error :invalid_ticket
+      render_validation_error(:invalid_ticket)
     end
   else
-    render_validation_error :invalid_request
+    render_validation_error(:invalid_request)
   end
+  
+  content_type :xml
+  xml.to_xml
 end
 
 private
@@ -105,5 +109,23 @@ def login_ticket
 end
 
 def service_ticket
-  @service_ticket ||= ServiceTicket.validate(params[:ticket], @redis)
+  @service_ticket ||= ServiceTicket.validate!(params[:ticket], @redis)
+end
+
+def render_validation_error(code)
+  Nokogiri::XML::Builder.new do |xml|
+    xml.serviceResponse("xmlns" => "http://www.yale.edu/tp/cas") {
+      xml.authenticationFailure(:code => code.to_s.upcase)
+    }
+  end
+end
+
+def render_validation_success(username)
+  Nokogiri::XML::Builder.new do |xml|
+    xml.serviceResponse("xmlns" => "http://www.yale.edu/tp/cas") {
+      xml.authenticationSuccess {
+        xml.user username
+      }
+    }
+  end
 end

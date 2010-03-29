@@ -360,23 +360,26 @@ class CasServerTest < Test::Unit::TestCase
       context "response" do
         context "ticket validation success" do
           should "produce an XML service response" do
-            post "/serviceValidate", {:service => @test_service_url, :ticket => @st.ticket}
+            get "/serviceValidate", {:service => @test_service_url, :ticket => @st.ticket}
             
+            assert_equal("application/xml", last_response.content_type)
             xml = Nokogiri::XML.parse(last_response.body)
             assert @xsd.validate(xml)
             
-            assert_equal("quentin", xml.xpath("//cas:user"))
+            assert !xml.xpath("//xmlns:authenticationSuccess").empty?
+            assert_equal("quentin", xml.xpath("//xmlns:user")[0].content)
           end
         end
         
         context "ticket validation failure" do
           should "produce an XML service response" do
-            post "/serviceValidate", {:service => @test_service_url, :ticket => "ST-FAKE"}
+            get "/serviceValidate", {:service => @test_service_url, :ticket => "ST-FAKE"}
 
+            assert_equal("application/xml", last_response.content_type)
             xml = Nokogiri::XML.parse(last_response.body)
             assert @xsd.validate(xml)
             
-            assert xml.xpath("//cas:authenticationFailure")
+            assert !xml.xpath("//xmlns:authenticationFailure").empty?
           end
         end
       end
