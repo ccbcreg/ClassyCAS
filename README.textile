@@ -1,0 +1,21 @@
+h1. Classy CAS
+
+Classy CAS is (or rather, will be) a "CAS compliant":http://www.jasig.org/cas/protocol server that will allow centralized authentication across a number of sites and environments.  For now, it's a weekend exercise.
+
+h2. What's There
+
+* "Sinatra":http://www.sinatrarb.com/ based.  Classy.
+* Uses "Redis":http://code.google.com/p/redis/ to store tickets.  Fast!
+* Lots of tests.  The whole protocol isn't there yet, but "this test":http://github.com/AndrewO/classy_cas/tree/master/test/protocol/service_ticket_test.rb is a good start on an executable spec for CAS 1.0/2.0.
+
+h2. What's Missing
+
+* Proxy authentication.
+* Logout support.
+* Plugable authentication stores.  I'm thining of "Warden":http://github.com/hassox/warden.  Any better ideas?
+* Lots of code cleanup.  The tests and the application all need a hearty helping of TLC before they're production ready.
+
+h2. Resources
+
+* "CAS":http://www.jasig.org/cas
+* "RubyCAS Server":http://github.com/gunark/rubycas-server, an existing CAS implementation written on top of Camping.  At times when the spec has been unclear, I've tried to stick to what RubyCAS does.
