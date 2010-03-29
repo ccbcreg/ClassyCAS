@@ -6,7 +6,7 @@ h2. What's There
 
 * "Sinatra":http://www.sinatrarb.com/ based.  Classy.
 * Uses "Redis":http://code.google.com/p/redis/ to store tickets.  Fast!
-* Lots of tests.  The whole protocol isn't there yet, but "this test":http://github.com/AndrewO/classy_cas/tree/master/test/protocol/service_ticket_test.rb is a good start on an executable spec for CAS 1.0/2.0.
+* Lots of tests.  The whole protocol isn't there yet, but "this test":http://github.com/AndrewO/ClassyCAS/blob/master/test/protocol/cas_server_test.rb is a good start on an executable spec for CAS 1.0/2.0.
 
 h2. What's Missing
 
