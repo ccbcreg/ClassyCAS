@@ -83,7 +83,6 @@ get "/serviceValidate" do
   xml = if params[:service] && params[:ticket]
     if service_ticket
       if service_ticket.valid_for_service?(service_url)
-        # debugger
         render_validation_success service_ticket.username
       else
         render_validation_error(:invalid_service)

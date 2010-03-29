@@ -387,22 +387,51 @@ class CasServerTest < Test::Unit::TestCase
       # 2.5.3
       context "error codes" do
         context "not all of the required request parameters present" do
-          should "respond with INVALID_REQUEST"
+          should "respond with INVALID_REQUEST" do
+            get "/serviceValidate"
+            
+            assert_equal("application/xml", last_response.content_type)
+            xml = Nokogiri::XML.parse(last_response.body)
+            assert @xsd.validate(xml)
+            
+            assert !xml.xpath("//xmlns:authenticationFailure").empty?
+            assert_equal("INVALID_REQUEST", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+          end
         end
         
         context "ticket provided was not valid or the ticket did not come from an intial login and 'renew' was set" do
-          should "respond with INVALID_TICKET"
+          should "respond with INVALID_TICKET" do
+            get "/serviceValidate", :service => @test_service_url, :ticket => "ST-FAKE"
+
+            assert_equal("application/xml", last_response.content_type)
+            xml = Nokogiri::XML.parse(last_response.body)
+            assert @xsd.validate(xml)
+            
+            assert !xml.xpath("//xmlns:authenticationFailure").empty?
+            assert_equal("INVALID_TICKET", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+          end
         end
         
         context "the ticket provided was valid, but the service specified did not match the service associated with the ticket" do
-          should "respond with INVALID_SERVICE"
+          setup { get "/serviceValidate", :service => "http://example.com", :ticket => @st.ticket }
+          should "respond with INVALID_SERVICE" do
+
+            assert_equal("application/xml", last_response.content_type)
+            xml = Nokogiri::XML.parse(last_response.body)
+            assert @xsd.validate(xml)
+            
+            assert !xml.xpath("//xmlns:authenticationFailure").empty?
+            assert_equal("INVALID_SERVICE", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+          end
           
           # MUST
-          should "invalidate the ticket"
+          should "invalidate the ticket" do
+            assert !ServiceTicket.validate!(@st.ticket, @redis)
+          end
         end
         
         context "an internal error occurred during ticket validation" do
-          should "respond with INTERNAL_ERROR"
+          should "respond with INTERNAL_ERROR" # Not sure how to test this
         end
       end
       
