@@ -54,11 +54,10 @@ end
 post "/login" do
   username = params[:username]
   password = params[:password]
-  login_ticket = params[:lt]
   
   service_url = params[:service]
 
-  warn = ["1", "true"].include? params[:warn]
+  warn = [true, "true", "1", 1].include? params[:warn]
   
   # Spec is undefined about what to do without these params, so redirecting to credential requestor
   redirect "/login", 303 unless username && password && login_ticket
@@ -77,4 +76,8 @@ end
 private
 def sso_session
   @sso_session ||= TicketGrantingTicket.validate!(request.cookies["tgt"], @redis)
+end
+
+def login_ticket
+  @login_ticket ||= LoginTicket.validate!(params[:lt], @redis)
 end

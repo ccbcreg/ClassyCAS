@@ -203,6 +203,10 @@ class CasServerTest < Test::Unit::TestCase
 
     # 2.2
     context "/login as credential acceptor" do
+      setup do
+        @lt = LoginTicket.new
+        @lt.save!(@redis)
+      end
       # 2.2.1
       # Tests in 2.2.4
       # context "parameters common to all types of authentication" do
@@ -224,6 +228,16 @@ class CasServerTest < Test::Unit::TestCase
           post "/login"
           
           assert !last_response.ok?
+          
+          post "/login", {:username => "quentin", :password => "testpassword", :lt => "LT-FAKE"}
+          
+          assert !last_response.ok?
+          
+          post "/login", {:username => "quentin", :password => "testpassword", :lt => @lt.ticket}
+          assert last_response.ok?
+
+          post "/login", {:username => "quentin", :password => "testpassword", :lt => @lt.ticket}
+          assert !last_response.ok?
         end
       end
       
@@ -235,7 +249,7 @@ class CasServerTest < Test::Unit::TestCase
       # 2.2.4
       context "responding" do
         context "with success" do
-          setup { @params = {:username => "quentin", :password => "testpassword", :lt => "LT-1"} }
+          setup { @params = {:username => "quentin", :password => "testpassword", :lt => @lt.ticket} }
           
           context "with a 'service' parameter" do
             setup { @params[:service] = URI.encode(@test_service_url)}
@@ -272,13 +286,29 @@ class CasServerTest < Test::Unit::TestCase
         end
         
         context "with failure" do
-          should "return to /login as a credential requester"
+          should "return to /login as a credential requester" do
+            post "/login"
+            
+            # Don't care if it's a redirect or not
+            follow_redirect!
+            
+            assert_have_selector "input[name='username']"
+            assert_have_selector "input[name='password']"
+            assert_have_selector "input[name='lt']"
+          end
           
           # RECOMMENDED
-          should "display an error message describing why login failed"
+          # Will implement with some kind of flash message
+          # should "display an error message describing why login failed" do
+          #   post "/login"
+          #   follow_redirect!
+          # 
+          #   assert_match /username required/, last_response.body
+          # end
           
           # RECOMMENDED
           should "provide an opportunity to attempt to login again"
+          # As "return to /login as a credential requester"
         end
       end
     end
