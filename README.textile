@@ -12,7 +12,7 @@ h2. What's Missing
 
 * Proxy authentication.
 * Logout support.
-* Plugable authentication stores.  I'm thining of "Warden":http://github.com/hassox/warden.  Any better ideas?
+* Plugable authentication stores.  I'm thinking of "Warden":http://github.com/hassox/warden or "Devise":http://blog.plataformatec.com.br/tag/devise/
 * Lots of code cleanup.  The tests and the application all need a hearty helping of TLC before they're production ready.
 
 h2. Resources
