@@ -14,6 +14,10 @@ before do
   @redis = Redis.new
 end
 
+get "/hello_world" do
+  "hello world"
+end
+
 get "/login" do
   @service_url = Addressable::URI.parse(params[:service])
   @renew = [true, "true", "1", 1].include?(params[:renew])

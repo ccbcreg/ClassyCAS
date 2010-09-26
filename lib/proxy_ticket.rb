@@ -2,7 +2,7 @@ class ProxyTicket
   class << self
     def validate!(ticket, store)
       if service_url = store[ticket]
-        store.delete ticket
+        store.del ticket
         new(service_url)
       end
     end

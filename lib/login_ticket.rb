@@ -1,8 +1,8 @@
 class LoginTicket
   class << self
     def validate!(ticket, store)
-      if store.key? ticket
-        store.delete ticket
+      if store.exists ticket
+        store.del ticket
         new
       end
     end

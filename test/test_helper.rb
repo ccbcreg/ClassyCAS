@@ -5,6 +5,7 @@ require 'rubygems'
 require 'shoulda'
 require 'ruby-debug'
 require 'redis'
+require "rack/test"
 require 'webrat'
 
 Webrat.configure do |config|

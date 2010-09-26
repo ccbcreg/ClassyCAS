@@ -5,6 +5,7 @@ class ServiceTicketTest < Test::Unit::TestCase
   context "A TicketGrantingTicket" do
     setup do
       @redis = Redis.new
+      assert_not_nil @redis
       @st = ServiceTicket.new("http://localhost", "quentin")
       @st.save!(@redis)
     end

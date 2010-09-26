@@ -4,7 +4,7 @@ class ServiceTicket
       username, service_url = store.lrange(ticket, 0,1)
       
       if service_url && username
-        store.delete ticket
+        store.del ticket
         new(service_url, username)
       end
     end
@@ -35,10 +35,17 @@ class ServiceTicket
   
   def save!(store)
     # Look at switching to HSET when it's implemented, for now, a 2 member list will do
-    store.pipelined do |pl|
-      pl.lpush ticket, service_url
-      pl.lpush ticket, username
-      pl.expire ticket, self.class.expire_time
+
+    store.pipelined do 
+      store.lpush ticket, service_url
+      store.lpush ticket, username
+      store.expire ticket, self.class.expire_time
     end
+    
+    # store.pipelined do |pl|
+    #   pl.lpush ticket, service_url
+    #   pl.lpush ticket, username
+    #   pl.expire ticket, self.class.expire_time
+    # end
   end
 end
