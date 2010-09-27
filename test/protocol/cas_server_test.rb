@@ -8,7 +8,7 @@ class CasServerTest < Test::Unit::TestCase
   include Webrat::Methods
   include Webrat::Matchers
   use Rack::Session::Cookie
-    
+
   module Rack
     module Test
       DEFAULT_HOST = 'localhost'
@@ -43,7 +43,7 @@ class CasServerTest < Test::Unit::TestCase
       context "parameters" do
         should "request credentials" do
           get "/login"
-          
+
           assert_have_selector "form"
         end
 
@@ -59,31 +59,31 @@ class CasServerTest < Test::Unit::TestCase
 
         context "with a 'service' parameter" do
           should "be url-encoded" do
-        
+
             get "/login?service=#{URI.encode(@test_service_url)}"
             assert last_response.ok?
-        
+
             assert_raise(URI::InvalidURIError) { get "/login?service=#{@test_service_url}" }
           end
-        
+
           context "a single sign-on session already exists" do
             setup { sso_session_for("quentin") }
-        
+
             # I'm going off rubycas-server here, and what I think is implied.
             should "generate a service ticket and redirect to the service" do
               get "/login", {:service => @test_service_url}, "HTTP_COOKIE" => @cookie
-        
+
               assert last_response.redirect?
               assert_equal Addressable::URI.parse(@test_service_url).path,
                 Addressable::URI.parse(last_response.headers["Location"]).path
             end
           end
-        
+
           # Not specified, but good sanity check
           context "an invalid single sign-on session exists" do
             should "not generate a service ticket and rediect" do
               get "/login", {:service => @test_service_url}, "HTTP_COOKIE" => "tgt=TGC-1234567"
-        
+
               assert !last_response.headers["Location"]
             end
           end
@@ -93,7 +93,7 @@ class CasServerTest < Test::Unit::TestCase
           setup { @params = { :renew => true }}
           context "a single sign-on session already exists" do
             setup { sso_session_for("quentin") }
-        
+
             should "bypass single sign on and force the client to renew" do
               get "/login", @params, "HTTP_COOKIE" => @cookie
               body = last_response.body
@@ -102,97 +102,100 @@ class CasServerTest < Test::Unit::TestCase
               assert_have_selector "input[name='lt']"
             end
           end
-        
+
           context "with a 'gateway' parameter" do
             # RECOMMENDED
             should "have 'renew' take precedence over a 'gateway' parameter"
           end
-      end
+        end
 
         context "with a 'gateway' parameter" do
           setup { @params = { :gateway => true }}
-      
+
           # RECOMMENDED
           should "request credentials as though neither 'gateway' or 'service' were set" do
             get "/login", @params
-      
+
             assert_have_selector "input[name='username']"
             assert_have_selector "input[name='password']"
             assert_have_selector "input[name='lt']"
           end
-      
+
           context "with a 'service' parameter" do
             setup { @params[:service] = @test_service_url }
-      
+
             must "not ask for credentials" do
               get "/login", @params
-      
+
               assert_have_no_selector "input[name='username']"
               assert_have_no_selector "input[name='password']"
               assert_have_no_selector "input[name='lt']"
             end
-      
-            
+
+
             must "redirect the client to the service URL without a ticket" do
               get "/login", @params
-      
+
               assert_equal(@test_service_url, last_response.headers["Location"])
             end
-      
+
             context "a single sign-on session already exists" do
               setup { sso_session_for("quentin") }
-      
+
 
               may "redirect the client to the service URL, appending a valid service ticket" do
                 get "/login", @params, "HTTP_COOKIE" => @cookie
-      
+
                 assert last_response.redirect?
                 assert_equal Addressable::URI.parse(@test_service_url).path,
                   Addressable::URI.parse(last_response.headers["Location"]).path
               end
-      
+
               # MAY
               # should "interpose an advisory page informing the client that a CAS authentication has taken place"
             end
           end
         end
       end
-      
+
       # 2.1.3
-        context "response for username/password authentication" do
+      context "response for username/password authentication" do
 
-          must "include a form with the parameters, 'username', 'password', and 'lt'" do
-            get "/login"
-      
-            assert_have_selector "input[name='username']"
-            assert_have_selector "input[name='password']"
-            assert_have_selector "input[name='lt']"
+        must "include a form with the parameters, 'username', 'password', and 'lt'" do
+          get "/login"
+
+          assert_have_selector "input[name='username']"
+          assert_have_selector "input[name='password']"
+          assert_have_selector "input[name='lt']"
+          assert_match("LT-", last_response.body)
+        end
+
+
+        may "include the parameter 'warn' in the form" do
+          get "/login"
+
+          assert_have_selector "input[name='warn']"
+        end
+
+        context "with a 'service' parameter" do
+
+          must "include the parameter 'service' in the form" do
+            get "/login?service=#{URI.encode(@test_service_url)}"
+
+            assert_have_selector "input[name='service']"
+            assert field_named("service").value == @test_service_url
           end
-          
+        end
 
-           may "include the parameter 'warn' in the form" do
+        context "the form" do
+
+          must "be submitted through the HTTP POST method" do
             get "/login"
-      
-            assert_have_selector "input[name='warn']"
-          end
-      
-          context "with a 'service' parameter" do
-
-            must "include the parameter 'service' in the form" do
-              get "/login?service=#{URI.encode(@test_service_url)}"
-      
-              assert_have_selector "input[name='service']"
-              assert field_named("service").value == @test_service_url
+            assert_match /method='post'/, last_response.body
+              assert_have_selector "input[class='button']"
             end
-          end
-          
-          context "the form" do
             
-            must "be submitted through the HTTP POST method" do
-              get "/login"
-              assert_match /method='post'/, last_response.body
-            end
-
+            
             must "be submitted to /login" do
               get "/login"
               assert_match /action='\/login'/, last_response.body
@@ -260,25 +263,41 @@ class CasServerTest < Test::Unit::TestCase
       end
       
       # 2.2.4
-        context "responding" do
-          context "with success" do
+        context "response" do
+          context "successful login:" do
             setup { @params = {:username => "quentin", :password => "testpassword", :lt => @lt.ticket} }
-      
+            
+            
             context "with a 'service' parameter" do
-              setup { @params[:service] = URI.encode(@test_service_url)}
+              setup do
+                 @service_param_url = URI.encode(@test_service_url)
+                 @params[:service] = @service_param_url
+              end
 
-              must "cause the client the send a GET request to the 'service'" do
+          
+              must 'redirect the client to the URL specified by the "service" parameter' do
                 post "/login", @params
                 assert last_response.redirect?
-                assert_equal URI.encode(@test_service_url), last_response.headers["Location"]
+                assert_match @service_param_url, last_response.headers["Location"]                
               end
-      
 
               must "not forward the client's credentials to the 'service'" do
                 post "/login", @params
-      
                 assert_no_match(/testpassword/, last_response.inspect)
+                assert_no_match(/quentin/, last_response.inspect)
               end
+
+              must "cause the client to send a GET request to the 'service'" do
+                post "/login", @params
+                assert_equal 303, last_response.status
+              end
+              
+              must "include a valid service ticket, passed as the HTTP request parameter, \"ticket\" with request" do
+                post "/login", @params
+                assert_match(/ticket/, last_response.inspect)
+                assert_match(/\=ST-/, last_response.inspect)
+              end
+
       
               # 2.2.1 again
               context "with a 'warn' parameter" do
@@ -571,8 +590,7 @@ class CasServerTest < Test::Unit::TestCase
           # MUST
           # should "be probablistically unique"
       
-          # MUST
-          should "be valid for only one attempt" do
+          must "be valid for only one attempt" do
             assert LoginTicket.validate!(@lt.ticket, @redis)
       
             assert !LoginTicket.validate!(@lt.ticket, @redis)

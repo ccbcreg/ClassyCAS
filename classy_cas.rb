@@ -9,7 +9,7 @@ require 'lib/login_ticket'
 require 'lib/proxy_ticket'
 require 'lib/service_ticket'
 require 'lib/ticket_granting_ticket'
-
+require 'lib/user_store'
 before do
   @redis = Redis.new
 end
@@ -20,6 +20,7 @@ get "/login" do
   @gateway = [true, "true", "1", 1].include?(params[:gateway])
   
   if @renew
+    @login_ticket = LoginTicket.create!(@redis)
     haml :login
   elsif @gateway
     if @service_url
@@ -33,6 +34,7 @@ get "/login" do
         redirect @service_url.to_s, 303
       end
     else
+      @login_ticket = LoginTicket.create!(@redis)
       haml :login
     end
   else
@@ -47,6 +49,7 @@ get "/login" do
         return haml :already_logged_in
       end
     else
+      @login_ticket = LoginTicket.create!(@redis)
       haml :login
     end
   end
@@ -63,9 +66,10 @@ post "/login" do
   # Spec is undefined about what to do without these params, so redirecting to credential requestor
   redirect "/login", 303 unless username && password && login_ticket
   
-  if username == "quentin" && password == "testpassword"
+  if UserStore.authenticate(username, password)
     if service_url && !warn
-      redirect service_url, 303
+      st = ServiceTicket.new(@service_url, username)
+      redirect service_url + "?ticket=#{st.ticket}", 303
     else
       haml :logged_in
     end
