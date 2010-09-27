@@ -12,6 +12,7 @@ GEM
     shoulda (2.11.3)
     sinatra (1.0)
       rack (>= 1.0)
+    system_timer (1.0)
     webrat (0.7.1)
       nokogiri (>= 1.2.0)
       rack (>= 1.0)
@@ -29,4 +30,5 @@ DEPENDENCIES
   rspec
   shoulda
   sinatra
+  system_timer
   webrat
