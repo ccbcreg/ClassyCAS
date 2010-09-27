@@ -78,13 +78,13 @@ post "/login" do
   end
 end
 
-get "/serviceValidate" do
+get %r{(proxy|service)Validate} do
   service_url = params[:service]
-  
+  ticket = params[:ticket]
   # proxy_gateway = params[:pgtUrl]
   # renew = params[:renew]
   
-  xml = if params[:service] && params[:ticket]
+  xml = if service_url && ticket
     if service_ticket
       if service_ticket.valid_for_service?(service_url)
         render_validation_success service_ticket.username
@@ -112,7 +112,7 @@ def login_ticket
 end
 
 def service_ticket
-  @service_ticket ||= ServiceTicket.validate!(params[:ticket], @redis)
+  @service_ticket ||= ServiceTicket.find!(params[:ticket], @redis)
 end
 
 def render_validation_error(code)

@@ -16,3 +16,9 @@ Shoulda::ClassMethods.module_eval do
   alias :must :should
   alias :may :should
 end
+
+module Test::Unit::Assertions
+  def assert_false(object, message="")
+    assert_equal(false, object, message)
+  end
+end

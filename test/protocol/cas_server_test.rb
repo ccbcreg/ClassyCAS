@@ -29,7 +29,53 @@ class CasServerTest < Test::Unit::TestCase
     @cookie = "#{cookie[0]}=#{cookie[1][:value]}"
     @tgt
   end
+  
+  def assert_invalid_request_xml_response(last_response)
+    assert_equal("application/xml", last_response.content_type)
+    xml = Nokogiri::XML.parse(last_response.body)
+    assert @xsd.validate(xml)    
 
+    assert !xml.xpath("//xmlns:authenticationFailure").empty?
+    assert_equal("INVALID_REQUEST", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+  end
+  
+  def assert_authentication_success_xml_response(last_response)
+    assert_equal("application/xml", last_response.content_type)
+    xml = Nokogiri::XML.parse(last_response.body)
+    assert @xsd.validate(xml)    
+      
+    assert !xml.xpath("//xmlns:authenticationSuccess").empty?
+    assert_equal("quentin", xml.xpath("//xmlns:user")[0].content)
+  end
+  
+  def assert_invalid_ticket_xml_response(last_response)
+    assert_equal("application/xml", last_response.content_type)
+    xml = Nokogiri::XML.parse(last_response.body)
+    assert @xsd.validate(xml)
+
+    assert !xml.xpath("//xmlns:authenticationFailure").empty?
+    assert_equal("INVALID_TICKET", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+
+  end
+  
+  def assert_authenticate_failure_xml_response(last_response)
+    assert_equal("application/xml", last_response.content_type)
+    xml = Nokogiri::XML.parse(last_response.body)
+    assert @xsd.validate(xml)
+
+    assert !xml.xpath("//xmlns:authenticationFailure").empty?
+  end
+  
+  def assert_invalid_service_xml_response(last_response)
+    assert_equal("application/xml", last_response.content_type)
+    xml = Nokogiri::XML.parse(last_response.body)
+    assert @xsd.validate(xml)
+
+    assert !xml.xpath("//xmlns:authenticationFailure").empty?
+    assert_equal("INVALID_SERVICE", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+
+  end
+  
   context "A CAS server" do
     setup do
       @test_service_url = "http://example.com?page=foo bar"
@@ -191,14 +237,14 @@ class CasServerTest < Test::Unit::TestCase
 
           must "be submitted through the HTTP POST method" do
             get "/login"
-            assert_match /method='post'/, last_response.body
+            assert_match(/method='post'/, last_response.body)
               assert_have_selector "input[class='button']"
             end
             
             
             must "be submitted to /login" do
               get "/login"
-              assert_match /action='\/login'/, last_response.body
+              assert_match(/action='\/login'/, last_response.body)
             end
           end
         end
@@ -373,17 +419,38 @@ class CasServerTest < Test::Unit::TestCase
       
           @xsd = Nokogiri::XML::Schema(File.new(File.dirname(__FILE__) + "/cas.xsd"))
         end
-      
+        must "issue proxy granting tickets when requested."
+        
+        context "if it receives a proxy ticket" do
+          must "not return a successful validation if it receives a proxy ticket"
+          should "have ane error message that explains in the xml that validation failed because a proxy ticket was passed"
+        end
+        
+        
+        
         # 2.5.1
         context "parameters" do
+          must "require 'service and 'ticket' parameter" do
+            get "/serviceValidate"
+            assert_invalid_request_xml_response(last_response)
+            
+            get "/serviceValidate", {:service => @test_service_url}
+            assert_invalid_request_xml_response(last_response)
+            
+            get "/serviceValidate", {:ticket => 'ticket'}
+            assert_invalid_request_xml_response(last_response)
+
+          end
+          
           context "with 'service' and 'ticket' parameters" do
-      
+            
             context "with a 'pgtUrl' parameter" do
-      
+              must "perform proxy callback"
             end
       
             context "with a 'renew' parameter" do
-      
+              must "fail ticket validation if the service ticket was issued from a single sign-on session"
+
             end
           end
         end
@@ -393,25 +460,16 @@ class CasServerTest < Test::Unit::TestCase
         context "ticket validation success" do
           should "produce an XML service response" do
             get "/serviceValidate", {:service => @test_service_url, :ticket => @st.ticket}
-      
-            assert_equal("application/xml", last_response.content_type)
-            xml = Nokogiri::XML.parse(last_response.body)
-            assert @xsd.validate(xml)
-      
-            assert !xml.xpath("//xmlns:authenticationSuccess").empty?
-            assert_equal("quentin", xml.xpath("//xmlns:user")[0].content)
+            
+            assert_authentication_success_xml_response(last_response)
           end
         end
       
         context "ticket validation failure" do
           should "produce an XML service response" do
             get "/serviceValidate", {:service => @test_service_url, :ticket => "ST-FAKE"}
-      
-            assert_equal("application/xml", last_response.content_type)
-            xml = Nokogiri::XML.parse(last_response.body)
-            assert @xsd.validate(xml)
-      
-            assert !xml.xpath("//xmlns:authenticationFailure").empty?
+            
+            assert_authenticate_failure_xml_response(last_response)
           end
         end
       end
@@ -421,44 +479,28 @@ class CasServerTest < Test::Unit::TestCase
         context "not all of the required request parameters present" do
           should "respond with INVALID_REQUEST" do
             get "/serviceValidate"
-      
-            assert_equal("application/xml", last_response.content_type)
-            xml = Nokogiri::XML.parse(last_response.body)
-            assert @xsd.validate(xml)
-      
-            assert !xml.xpath("//xmlns:authenticationFailure").empty?
-            assert_equal("INVALID_REQUEST", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+            
+            assert_invalid_request_xml_response(last_response)
           end
         end
       
         context "ticket provided was not valid or the ticket did not come from an intial login and 'renew' was set" do
           should "respond with INVALID_TICKET" do
             get "/serviceValidate", :service => @test_service_url, :ticket => "ST-FAKE"
-      
-            assert_equal("application/xml", last_response.content_type)
-            xml = Nokogiri::XML.parse(last_response.body)
-            assert @xsd.validate(xml)
-      
-            assert !xml.xpath("//xmlns:authenticationFailure").empty?
-            assert_equal("INVALID_TICKET", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+            assert_invalid_ticket_xml_response(last_response)
           end
         end
       
         context "the ticket provided was valid, but the service specified did not match the service associated with the ticket" do
           setup { get "/serviceValidate", :service => "http://example.com", :ticket => @st.ticket }
           should "respond with INVALID_SERVICE" do
-      
-            assert_equal("application/xml", last_response.content_type)
-            xml = Nokogiri::XML.parse(last_response.body)
-            assert @xsd.validate(xml)
-      
-            assert !xml.xpath("//xmlns:authenticationFailure").empty?
-            assert_equal("INVALID_SERVICE", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+            
+            assert_invalid_service_xml_response(last_response)
           end
       
           # MUST
           should "invalidate the ticket" do
-            assert !ServiceTicket.validate!(@st.ticket, @redis)
+            assert !ServiceTicket.find!(@st.ticket, @redis)
           end
         end
       
@@ -469,8 +511,107 @@ class CasServerTest < Test::Unit::TestCase
       
       #2.5.4
       context "proxy callback" do
-        # TODO
+        #TODO
       end
+      
+      #2.6 
+      context "/proxyValidate" do
+        context "performing the same validation tasks as /serviceValidate" do
+          
+          setup do
+            @st = ServiceTicket.new(@test_service_url, "quentin")
+            @st.save!(@redis)
+      
+            @xsd = Nokogiri::XML::Schema(File.new(File.dirname(__FILE__) + "/cas.xsd"))
+          end
+          
+          # 2.5.1 for 2.6
+          context "parameters" do
+            must "require 'service and 'ticket' parameter" do
+              get "/proxyValidate"
+              assert_invalid_request_xml_response(last_response)
+        
+              get "/proxyValidate", {:service => @test_service_url}
+              assert_invalid_request_xml_response(last_response)
+        
+              get "/proxyValidate", {:ticket => 'ticket'}
+              assert_invalid_request_xml_response(last_response)
+
+            end
+      
+            context "with 'service' and 'ticket' parameters" do
+        
+              context "with a 'pgtUrl' parameter" do
+                must "perform proxy callback"
+              end
+  
+              context "with a 'renew' parameter" do
+                must "fail ticket validation if the service ticket was issued from a single sign-on session"
+
+              end
+            end
+          end
+
+          # 2.5.2 for 2.6
+          context "response" do
+            context "ticket validation success" do
+              should "produce an XML service response" do
+                get "/proxyValidate", {:service => @test_service_url, :ticket => @st.ticket}
+                assert_authentication_success_xml_response(last_response)
+              end
+            end
+      
+            context "ticket validation failure" do
+              should "produce an XML service response" do
+                get "/proxyValidate", {:service => @test_service_url, :ticket => "ST-FAKE"}
+                
+                assert_authenticate_failure_xml_response(last_response)
+              end
+            end
+          end
+
+        end
+        
+          # 2.5.3 for 2.6
+        context "error codes" do
+          context "not all of the required request parameters present" do
+            should "respond with INVALID_REQUEST" do
+              get "/proxyValidate"
+          
+              assert_invalid_request_xml_response(last_response)
+            end
+          end
+    
+          context "ticket provided was not valid or the ticket did not come from an intial login and 'renew' was set" do
+            should "respond with INVALID_TICKET" do
+              get "/proxyValidate", :service => @test_service_url, :ticket => "ST-FAKE"
+              
+              assert_invalid_ticket_xml_response(last_response)
+            end
+          end
+    
+          context "the ticket provided was valid, but the service specified did not match the service associated with the ticket" do
+            setup { get "/proxyValidate", :service => "http://example.com", :ticket => @st.ticket }
+            should "respond with INVALID_SERVICE" do
+              
+              assert_invalid_service_xml_response(last_response)
+            end
+    
+            # MUST
+            should "invalidate the ticket" do
+              assert !ServiceTicket.find!(@st.ticket, @redis)
+            end
+          end
+    
+          context "an internal error occurred during ticket validation" do
+            should "respond with INTERNAL_ERROR" # Not sure how to test this
+          end
+        end
+
+            must "validate proxy tickets"
+            must "be capable of validating both service tickets and proxy tickets."
+          end
+      
       end
       
       # 3.1
@@ -493,9 +634,9 @@ class CasServerTest < Test::Unit::TestCase
       
           # MUST
           should "be valid for only one attempt" do
-            assert ServiceTicket.validate!(@st.ticket, @redis)
+            assert ServiceTicket.find!(@st.ticket, @redis)
       
-            assert !ServiceTicket.validate!(@st.ticket, @redis)
+            assert !ServiceTicket.find!(@st.ticket, @redis)
           end
       
           should "expire unvalidated service tickets in a reasonable period of time (recommended to be less than 5 minutes)" do
