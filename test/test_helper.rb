@@ -12,3 +12,7 @@ Webrat.configure do |config|
   config.mode = :rack
 end
 
+Shoulda::ClassMethods.module_eval do
+  alias :must :should
+  alias :may :should
+end

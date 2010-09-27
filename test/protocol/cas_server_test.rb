@@ -38,21 +38,13 @@ class CasServerTest < Test::Unit::TestCase
 
     # 2.1
     context "/login as credential requestor" do
-      context "basic test" do
-        should "return hello world" do
-          get "/hello_world"
-          assert last_response.ok?
-          assert_equal 'hello world', last_response.body
-          assert_contain "hello world"
-        end
-      end
 
       # 2.1.1
       context "parameters" do
         should "request credentials" do
           get "/login"
           
-          assert_match(/<form>/, last_response.body)
+          assert_have_selector "form"
         end
 
         context "a single sign-on session already exists" do
@@ -132,7 +124,7 @@ class CasServerTest < Test::Unit::TestCase
           context "with a 'service' parameter" do
             setup { @params[:service] = @test_service_url }
       
-            should "not ask for credentials" do
+            must "not ask for credentials" do
               get "/login", @params
       
               assert_have_no_selector "input[name='username']"
@@ -140,8 +132,8 @@ class CasServerTest < Test::Unit::TestCase
               assert_have_no_selector "input[name='lt']"
             end
       
-            # MUST
-            should "redirect the client to the service URL without a ticket" do
+            
+            must "redirect the client to the service URL without a ticket" do
               get "/login", @params
       
               assert_equal(@test_service_url, last_response.headers["Location"])
@@ -150,8 +142,8 @@ class CasServerTest < Test::Unit::TestCase
             context "a single sign-on session already exists" do
               setup { sso_session_for("quentin") }
       
-              # MAY
-              should "redirect the client to the service URL, appending a valid service ticket" do
+
+              may "redirect the client to the service URL, appending a valid service ticket" do
                 get "/login", @params, "HTTP_COOKIE" => @cookie
       
                 assert last_response.redirect?
@@ -168,29 +160,42 @@ class CasServerTest < Test::Unit::TestCase
       
       # 2.1.3
         context "response for username/password authentication" do
-          # MUST
-          should "include a form with the parameters, 'username', 'password', and 'lt'" do
+
+          must "include a form with the parameters, 'username', 'password', and 'lt'" do
             get "/login"
       
             assert_have_selector "input[name='username']"
             assert_have_selector "input[name='password']"
             assert_have_selector "input[name='lt']"
           end
-      
-          # MAY
-          should "include the parameter 'warn' in the form" do
+          
+
+           may "include the parameter 'warn' in the form" do
             get "/login"
       
             assert_have_selector "input[name='warn']"
           end
       
           context "with a 'service' parameter" do
-            # MUST
-            should "include the parameter 'service' in the form" do
+
+            must "include the parameter 'service' in the form" do
               get "/login?service=#{URI.encode(@test_service_url)}"
       
               assert_have_selector "input[name='service']"
               assert field_named("service").value == @test_service_url
+            end
+          end
+          
+          context "the form" do
+            
+            must "be submitted through the HTTP POST method" do
+              get "/login"
+              assert_match /method='post'/, last_response.body
+            end
+
+            must "be submitted to /login" do
+              get "/login"
+              assert_match /action='\/login'/, last_response.body
             end
           end
         end
@@ -221,20 +226,18 @@ class CasServerTest < Test::Unit::TestCase
       #Tests in 2.2.4
       context "parameters common to all types of authentication" do
         context "with a 'service' parameter" do
-          # MUST
-          should "redirect the client to the 'service' url"
+          must "redirect the client to the 'service' url"
         end
       
         context "with a 'warn' parameter" do
-          # MUST
-          should "prompt the client before authenticating on another service"
+          must "prompt the client before authenticating on another service"
         end
       end
       
       # 2.2.2
       context "parameters for username/password authentication" do
-        # MUST
-        should "require 'username', 'password', and 'lt' (login ticket) parameters" do
+
+        must "require 'username', 'password', and 'lt' (login ticket) parameters" do
           post "/login"
       
           assert !last_response.ok?
@@ -263,15 +266,15 @@ class CasServerTest < Test::Unit::TestCase
       
             context "with a 'service' parameter" do
               setup { @params[:service] = URI.encode(@test_service_url)}
-              # MUST
-              should "cause the client the send a GET request to the 'service'" do
+
+              must "cause the client the send a GET request to the 'service'" do
                 post "/login", @params
                 assert last_response.redirect?
                 assert_equal URI.encode(@test_service_url), last_response.headers["Location"]
               end
       
-              # MUST
-              should "not forward the client's credentials to the 'service'" do
+
+              must "not forward the client's credentials to the 'service'" do
                 post "/login", @params
       
                 assert_no_match(/testpassword/, last_response.inspect)
@@ -280,16 +283,16 @@ class CasServerTest < Test::Unit::TestCase
               # 2.2.1 again
               context "with a 'warn' parameter" do
                 setup { @params[:warn] = "true" }
-                # MUST
-                should "prompt the client before authenticating to another service" do
+
+                must "prompt the client before authenticating to another service" do
                   post "/login", @params
                   assert !last_response.redirect?
                 end
               end
             end
       
-            # MUST
-            should "display a message notifying the client that it has successfully initiated a single sign-on session" do
+
+            must "display a message notifying the client that it has successfully initiated a single sign-on session" do
               post "/login", @params
               assert !last_response.redirect?
             end
