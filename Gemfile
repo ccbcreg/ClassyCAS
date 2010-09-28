@@ -1,11 +1,13 @@
 source "http://rubygems.org"
-gem 'sinatra'
-gem 'redis'
-gem 'system_timer'
-gem 'haml'
-gem 'addressable'
-gem 'nokogiri'
-gem 'rack', '=1.1'
-gem 'rspec', :require => 'spec'
-gem 'webrat'
-gem 'shoulda'
+gem 'sinatra', '~>1.0'
+gem 'redis', '~>2.0'
+gem 'SystemTimer', '1.2'
+gem 'haml', '~>3.0.18'
+gem 'addressable', '~>2.1.2'
+gem 'nokogiri', '~>1.4.0'
+gem 'rack', '~>1.2.0'
+
+group :test do
+  gem 'webrat'
+  gem 'shoulda'
+end
