@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'sinatra'
+
 require 'redis'
 require 'haml'
 require 'addressable/uri'
@@ -10,9 +11,11 @@ require 'lib/proxy_ticket'
 require 'lib/service_ticket'
 require 'lib/ticket_granting_ticket'
 require 'lib/user_store'
+
 before do
-  @redis = Redis.new
+    @redis ||= Redis.new
 end
+
 
 get "/login" do
   @service_url = Addressable::URI.parse(params[:service])
@@ -68,7 +71,8 @@ post "/login" do
   
   if UserStore.authenticate(username, password)
     if service_url && !warn
-      st = ServiceTicket.new(@service_url, username)
+      st = ServiceTicket.new(service_url, username)
+      st.save!(@redis)
       redirect service_url + "?ticket=#{st.ticket}", 303
     else
       haml :logged_in
