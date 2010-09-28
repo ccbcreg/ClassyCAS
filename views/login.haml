@@ -1,13 +1,14 @@
-%form{:method => "post"}
+%form{:action => '/login', :method => 'post'}
   %p
     %label{:for => "username"} Username:
     %input#username{:name => "username", :type => "text"}
   %p
     %label{:for => "password"} Password:
-    %input#username{:name => "password", :type => "text"}
-  %input{:name => "lt", :type => "hidden"}
+    %input#username{:name => "password", :type => "password"}
+  %input{:name => "lt", :type => "hidden", :value => @login_ticket.ticket}
   %input{:name => "warn", :type => "hidden"}
   %p
     %input#classy-submit{:name => "login", :type => "submit"}
   - if @service_url
     %input{:name => "service", :type => "hidden", :value => @service_url}
+  %input{:type => "submit", :value => "Submit", :class => "button"}

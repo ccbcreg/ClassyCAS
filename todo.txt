@@ -1,0 +1,11 @@
+Check POST to /login when parameters are not specified preserves service and warn parameters
+Look at safe redirect using javascript
+Switch to hsets for other tickets 
+Get Service Ticket validating correctly
+
+Write to RubyCAS client author about invalid xml expectations
+For RubyCASClient fix xml expectations
+Jewel RubyCASClient
+Test Service Ticket validation
+Look at how other Sinatra Apps are structured
+

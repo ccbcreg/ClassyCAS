@@ -16,5 +16,9 @@ class TicketGrantingTicketTest < Test::Unit::TestCase
       tgt2 = TicketGrantingTicket.validate!(@tgt.ticket, @redis)
       assert_equal("quentin", @tgt.username)
     end
+    
+    should "return a ticket" do
+      assert_not_nil @tgt.ticket
+    end
   end
 end
