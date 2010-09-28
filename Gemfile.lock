@@ -3,12 +3,19 @@ GEM
   specs:
     SystemTimer (1.2)
     addressable (2.1.2)
+    columnize (0.3.1)
     haml (3.0.18)
+    linecache (0.43)
     nokogiri (1.4.3.1)
     rack (1.2.1)
     rack-test (0.5.6)
       rack (>= 1.0)
     redis (2.0.10)
+    ruby-debug (0.10.3)
+      columnize (>= 0.1)
+      ruby-debug-base (~> 0.10.3.0)
+    ruby-debug-base (0.10.3)
+      linecache (>= 0.3)
     shoulda (2.11.3)
     sinatra (1.0)
       rack (>= 1.0)
@@ -27,6 +34,7 @@ DEPENDENCIES
   nokogiri (~> 1.4.0)
   rack (~> 1.2.0)
   redis (~> 2.0)
+  ruby-debug
   shoulda
   sinatra (~> 1.0)
   webrat
