@@ -103,7 +103,7 @@ get %r{(proxy|service)Validate} do
   end
   
   content_type :xml
-  xml.to_xml
+  xml
 end
 
 private
@@ -120,19 +120,31 @@ def service_ticket
 end
 
 def render_validation_error(code)
-  Nokogiri::XML::Builder.new do |xml|
-    xml.serviceResponse("xmlns" => "http://www.yale.edu/tp/cas") {
-      xml.authenticationFailure(:code => code.to_s.upcase)
+  xml = Nokogiri::XML::Builder.new do |xml|
+    xml.serviceResponse("xmlns:cas" => "http://www.yale.edu/tp/cas") {
+      xml['cas'].authenticationFailure(:code => code.to_s.upcase)
     }
   end
+  namespace_hack(xml)
 end
 
 def render_validation_success(username)
-  Nokogiri::XML::Builder.new do |xml|
-    xml.serviceResponse("xmlns" => "http://www.yale.edu/tp/cas") {
-      xml.authenticationSuccess {
-        xml.user username
+  xml = Nokogiri::XML::Builder.new do |xml|
+    xml.serviceResponse("xmlns:cas" => "http://www.yale.edu/tp/cas") {
+      xml['cas'].authenticationSuccess {
+        xml['cas'].user username
       }
     }
   end
+  namespace_hack(xml)
+end
+
+
+
+#Nokogiri will not allow a namespace to be used before
+#It's declared, why this is I don't know.
+def namespace_hack(xml)  
+  result = xml.to_xml
+  result = result.gsub(/serviceResponse/, 'cas:serviceResponse')
+  result
 end

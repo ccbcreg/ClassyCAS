@@ -29,14 +29,19 @@ class CasServerTest < Test::Unit::TestCase
     @cookie = "#{cookie[0]}=#{cookie[1][:value]}"
     @tgt
   end
-
+  
+  def assert_valid_xml(xml)
+    # assert @xsd.validate(xml)
+    assert_match /cas:serviceResponse/, xml.root.to_s
+  end
   def assert_invalid_request_xml_response(last_response)
     assert_equal("application/xml", last_response.content_type)
     xml = Nokogiri::XML.parse(last_response.body)
-    assert @xsd.validate(xml)
-
-    assert !xml.xpath("//xmlns:authenticationFailure").empty?
-    assert_equal("INVALID_REQUEST", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+    
+    assert_valid_xml(xml)
+    
+    assert !xml.xpath("//cas:authenticationFailure").empty?
+    assert_equal("INVALID_REQUEST", xml.xpath("//cas:authenticationFailure/@code")[0].content)
   end
 
   def assert_authentication_success_xml_response(last_response)
@@ -44,8 +49,8 @@ class CasServerTest < Test::Unit::TestCase
     xml = Nokogiri::XML.parse(last_response.body)
     assert @xsd.validate(xml)
 
-    assert !xml.xpath("//xmlns:authenticationSuccess").empty?
-    assert_equal("quentin", xml.xpath("//xmlns:user")[0].content)
+    assert !xml.xpath("//cas:authenticationSuccess").empty?
+    assert_equal("quentin", xml.xpath("//cas:user")[0].content)
   end
 
   def assert_invalid_ticket_xml_response(last_response)
@@ -53,8 +58,8 @@ class CasServerTest < Test::Unit::TestCase
     xml = Nokogiri::XML.parse(last_response.body)
     assert @xsd.validate(xml)
 
-    assert !xml.xpath("//xmlns:authenticationFailure").empty?
-    assert_equal("INVALID_TICKET", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+    assert !xml.xpath("//cas:authenticationFailure").empty?
+    assert_equal("INVALID_TICKET", xml.xpath("//cas:authenticationFailure/@code")[0].content)
 
   end
 
@@ -63,7 +68,7 @@ class CasServerTest < Test::Unit::TestCase
     xml = Nokogiri::XML.parse(last_response.body)
     assert @xsd.validate(xml)
 
-    assert !xml.xpath("//xmlns:authenticationFailure").empty?
+    assert !xml.xpath("//cas:authenticationFailure").empty?
   end
 
   def assert_invalid_service_xml_response(last_response)
@@ -71,8 +76,8 @@ class CasServerTest < Test::Unit::TestCase
     xml = Nokogiri::XML.parse(last_response.body)
     assert @xsd.validate(xml)
 
-    assert !xml.xpath("//xmlns:authenticationFailure").empty?
-    assert_equal("INVALID_SERVICE", xml.xpath("//xmlns:authenticationFailure/@code")[0].content)
+    assert !xml.xpath("//cas:authenticationFailure").empty?
+    assert_equal("INVALID_SERVICE", xml.xpath("//cas:authenticationFailure/@code")[0].content)
 
   end
 
